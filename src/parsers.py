@@ -82,9 +82,15 @@ class CAPParser(object):
         for area_obj in info_dict['area']:
             new_area_dict = {}
             if hasattr(area_obj, 'circle'):
-                new_area_dict['circle'] = info_dict['area'].circle
+                circle_list = []
+                for circle in area_obj['circle']:
+                    circle_list.append(circle)
+                new_area_dict['circle'] = circle_list
             if hasattr(area_obj, 'polygon'):
-                new_area_dict['polygon'] = info_dict['area'].polygon
+                polygon_list = []
+                for polygon in area_obj['polygon']:
+                    polygon_list.append(polygon)
+                new_area_dict['polygon'] = polygon_list
             if hasattr(area_obj, 'geocode'):
                 geocode_list = []
                 for geocode in area_obj['geocode']:
@@ -95,6 +101,14 @@ class CAPParser(object):
             new_area_list.append(new_area_dict)
         info_dict['cap_area'] = new_area_list
         info_dict.pop('area')  # override the area value.
+        return info_dict
+
+    def process_category(self, info_dict):
+        category_list = []
+        for category in info_dict['category']:
+            category_list.append(category)
+        info_dict['cap_category'] = category_list
+        info_dict.pop('category')
         return info_dict
 
     def process_event_code(self, info_dict):
@@ -125,8 +139,20 @@ class CAPParser(object):
         info_dict.pop('resource')
         return info_dict
 
+    def process_response_type(self, info_dict):
+        response_list = []
+        for response in info_dict['responseType']:
+            response_list.append(response)
+        info_dict['cap_response_type'] = response_list
+        info_dict.pop('responseType')
+        return info_dict
+
     def parse_alert(self, alert):
         alert_dict = alert.__dict__
+        code_list = []
+        for code_element in alert.code:
+            code_list.append(code_element)
+        alert_dict['code'] = code_list
 
         for alert_key in alert_dict.keys():
             if alert_key in CAP_MAPPINGS:
@@ -137,13 +163,11 @@ class CAPParser(object):
         for info_item in alert.info:
             info_dict = info_item.__dict__
 
-            for info_key in info_dict.keys():
-                if info_key in CAP_MAPPINGS:
-                    new_info_key = CAP_MAPPINGS[info_key]
-                    info_dict[new_info_key] = unicode(info_dict.pop(info_key))
-
             if 'area' in info_dict.keys():
                 info_dict = self.process_area(info_dict)
+
+            if 'category' in info_dict.keys():
+                info_dict = self.process_category(info_dict)
 
             if 'eventCode' in info_dict.keys():
                 info_dict = self.process_event_code(info_dict)
@@ -153,6 +177,14 @@ class CAPParser(object):
 
             if 'resource' in info_dict.keys():
                 info_dict = self.process_resource(info_dict)
+
+            if 'responseType' in info_dict.keys():
+                info_dict = self.process_response_type(info_dict)
+
+            for info_key in info_dict.keys():
+                if info_key in CAP_MAPPINGS:
+                    new_info_key = CAP_MAPPINGS[info_key]
+                    info_dict[new_info_key] = unicode(info_dict.pop(info_key))
 
             info_item_list.append(info_dict)
 
